@@ -1,0 +1,35 @@
+{
+  "name": "monogram-lookup",
+  "version": "0.0.0",
+  "author": "Valeri Karpov <valeri.karpov@mongodb.com>",
+  "bugs": {
+    "url": "https://github.com/vkarpov15/monogram-lookup/issues"
+  },
+  "dependencies": {
+    "debug": "2.2.0",
+    "lodash": "3.x"
+  },
+  "description": "pseudo-joins for monogram inspired by $lookUp in mongodb 3.2.",
+  "devDependencies": {
+    "co": "4.6.0",
+    "gulp": "3.8.11",
+    "gulp-mocha": "2.0.1",
+    "istanbul": "0.3.17",
+    "mocha": "2.2.4",
+    "monogram": "https://github.com/vkarpov15/monogram/archive/master.tar.gz"
+  },
+  "engines": {
+    "node": ">= 4.0.0"
+  },
+  "homepage": "https://github.com/vkarpov15/monogram-lookup#readme",
+  "license": "Apache 2.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vkarpov15/monogram-lookup.git"
+  },
+  "scripts": {
+    "coverage": "istanbul cover _mocha -- test/*.test.js",
+    "test": "mocha test/*.test.js"
+  }
+}
