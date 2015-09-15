@@ -22,18 +22,18 @@ describe('lookUp()', function() {
       let gnr = new Band({ _id: 1, name: `Guns N' Roses` });
       yield gnr.$save();
 
-      yield [
-        new Person({
+      yield Person.create([
+        {
           name: 'Axl Rose',
           role: 'Lead Singer',
           band: gnr._id
-        }).$save(),
-        new Person({
+        },
+        {
           name: 'Slash',
           role: 'Guitarist',
           band: gnr._id
-        }).$save()
-      ];
+        }
+      ]);
 
       let populated = yield Band.findOne({ _id: gnr._id }).
         lookUp(Person, 'members', { band: '$_id' });
