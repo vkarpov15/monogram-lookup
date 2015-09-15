@@ -90,4 +90,22 @@ describe('lookUp()', function() {
       done(error);
     });
   });
+
+  it('$lookUp on a document', function(done) {
+    co(function*() {
+      let gnr = yield Band.findOne({ name: `Guns N' Roses` });
+
+      assert.ok(!gnr.members);
+
+      yield gnr.$lookUp(Person, 'members', { band: '$_id' });
+
+      assert.equal(gnr.members.length, 2);
+      assert.equal(gnr.members[0].name, 'Axl Rose');
+      assert.equal(gnr.members[1].name, 'Slash');
+
+      done();
+    }).catch(function(error) {
+      done(error);
+    });
+  });
 });

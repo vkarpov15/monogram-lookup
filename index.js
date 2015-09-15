@@ -13,11 +13,16 @@ module.exports = function(schema) {
     return this;
   });
 
-  var exec = function*(next) {
-    var docs = yield next;
+  schema.method('document', '$lookUp', function*(model, as, on, options) {
+    var chain = new Chain(this, storageKey, getPromise);
+    chain[storageKey] = [{ model: model, as: as, on: on, options: options }];
+    return chain;
+  });
+
+  var getPromise = function(docs) {
     if (!this[storageKey]) {
       debug('No ops for lookup');
-      return docs;
+      return;
     }
 
     var toExec = [];
@@ -25,7 +30,7 @@ module.exports = function(schema) {
       if (Array.isArray(docs)) {
         docs.forEach(function(doc) {
           debug('lookup for doc', doc);
-          toExec.push(op.model.find(transformQuery(op.on, doc)).
+          toExec.push(op.model.find(transformQuery(op.on, doc), op.options).
             then(function(res) {
               doc.$ignorePath(op.as, true);
               _.set(doc, op.as, res);
@@ -33,7 +38,7 @@ module.exports = function(schema) {
         });
       } else {
         debug('lookup for doc', docs);
-        toExec.push(op.model.find(transformQuery(op.on, docs)).
+        toExec.push(op.model.find(transformQuery(op.on, docs), op.options).
           then(function(res) {
             debug('ignore', op.as);
             docs.$ignorePath(op.as, true);
@@ -41,6 +46,18 @@ module.exports = function(schema) {
           }));
       }
     });
+
+    return toExec;
+  };
+
+  var exec = function*(next) {
+    var docs = yield next;
+
+    var toExec = getPromise.call(this, docs);
+    if (!toExec) {
+      debug('No ops for lookup');
+      return docs;
+    }
 
     yield toExec;
 
@@ -54,6 +71,15 @@ module.exports = function(schema) {
     middleware('findOneAndUpdate', exec).
     middleware('findOneAndReplace', exec);
 };
+
+function Chain(doc, storageKey, exec) {
+  this.$lookUp = (model, as, on, options) => {
+    this[storageKey].push({ model: model, as: as, on: on, options: options });
+  };
+  this.then = function(resolve, reject) {
+    return Promise.all(exec.call(this, doc)).then(resolve, reject);
+  };
+}
 
 function transformQuery(query, doc) {
   query = _.cloneDeep(query);
