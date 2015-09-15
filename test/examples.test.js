@@ -91,6 +91,23 @@ describe('lookUp()', function() {
     });
   });
 
+  it('works with findOneAndUpdate', function(done) {
+    co(function*() {
+      let setOp = { $set: { founded: '1985' } };
+      let gnr = yield Band.
+        findOneAndUpdate({ name: `Guns N' Roses` }, setOp).
+        lookUp(Person, 'members', { band: '$_id' });
+
+      assert.equal(gnr.members.length, 2);
+      assert.equal(gnr.members[0].name, 'Axl Rose');
+      assert.equal(gnr.members[1].name, 'Slash');
+
+      done();
+    }).catch(function(error) {
+      done(error);
+    });
+  });
+
   it('$lookUp on a document', function(done) {
     co(function*() {
       let gnr = yield Band.findOne({ name: `Guns N' Roses` });
