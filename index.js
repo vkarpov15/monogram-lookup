@@ -27,6 +27,7 @@ module.exports = function(schema) {
           debug('lookup for doc', doc);
           toExec.push(op.model.find(transformQuery(op.on, doc)).
             then(function(res) {
+              doc.$ignorePath(op.as, true);
               _.set(doc, op.as, res);
             }));
         });
@@ -34,6 +35,8 @@ module.exports = function(schema) {
         debug('lookup for doc', docs);
         toExec.push(op.model.find(transformQuery(op.on, docs)).
           then(function(res) {
+            debug('ignore', op.as);
+            docs.$ignorePath(op.as, true);
             _.set(docs, op.as, res);
           }));
       }
