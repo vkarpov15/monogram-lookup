@@ -18,7 +18,7 @@ describe('lookUp()', function() {
       lookup(schema);
 
       Band = db.model({ schema: schema, collection: 'band' });
-      Person = db.model('people');
+      Person = db.model({ collection: 'people' });
 
       yield Band.deleteMany({});
       yield Person.deleteMany({});
@@ -37,7 +37,7 @@ describe('lookUp()', function() {
       lookup(schema);
 
       let Band = db.model({ schema: schema, collection: 'band' });
-      let Person = db.model('people');
+      let Person = db.model({ collection: 'people' });
 
       let gnr = new Band({ _id: 1, name: `Guns N' Roses` });
       yield gnr.$save();
@@ -129,11 +129,10 @@ describe('lookUp()', function() {
   it('in schema', function(done) {
     co(function*() {
       let db = yield monogram('mongodb://localhost:27017');
-      let Person = db.model('people');
+      let Person = db.model('Person', { collection: 'people' });
       let schema = new monogram.Schema({
         members: {
-          $type: Array,
-          $lookUp: { model: Person, filter: { band: '$_id' } }
+          $lookUp: { ref: 'Person', filter: { band: '$_id' } }
         }
       });
 

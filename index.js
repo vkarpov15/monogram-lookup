@@ -13,6 +13,9 @@ module.exports = function(schema) {
     if (this.s.schema && this.s.schema._paths[path]) {
       _.defaults(op, this.s.schema._paths[path].$lookUp);
     }
+    if (op.ref) {
+      op.model = this.s.model.db().model(op.ref);
+    }
     this[storageKey].push(op);
     debug('Number of lookups: ' + this[storageKey].length);
     return this;
