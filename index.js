@@ -6,16 +6,26 @@ var debug = require('debug')('monogram:lookup:debug');
 module.exports = function(schema) {
   var storageKey = Symbol();
 
-  schema.method('query', 'lookUp', function(model, as, on, options) {
+  schema.method('query', 'lookUp', function(path, model, filter, options) {
     this[storageKey] = this[storageKey] || [];
-    this[storageKey].push({ model: model, as: as, on: on, options: options });
+
+    let op = { path: path, model: model, filter: filter, options: options };
+    if (this.s.schema && this.s.schema._paths[path]) {
+      _.defaults(op, this.s.schema._paths[path].$lookUp);
+    }
+    this[storageKey].push(op);
     debug('Number of lookups: ' + this[storageKey].length);
     return this;
   });
 
-  schema.method('document', '$lookUp', function*(model, as, on, options) {
+  schema.method('document', '$lookUp', function*(path, model, filter, options) {
     var chain = new Chain(this, storageKey, getPromise);
-    chain[storageKey] = [{ model: model, as: as, on: on, options: options }];
+    chain[storageKey] = [{
+      path: path,
+      model: model,
+      filter: filter,
+      options: options
+    }];
     return chain;
   });
 
@@ -30,19 +40,18 @@ module.exports = function(schema) {
       if (Array.isArray(docs)) {
         docs.forEach(function(doc) {
           debug('lookup for doc', doc);
-          toExec.push(op.model.find(transformQuery(op.on, doc), op.options).
+          toExec.push(op.model.find(transformQuery(op.filter, doc), op.options).
             then(function(res) {
-              doc.$ignorePath(op.as, true);
-              _.set(doc, op.as, res);
+              doc.$ignorePath(op.path, true);
+              _.set(doc, op.path, res);
             }));
         });
       } else {
         debug('lookup for doc', docs);
-        toExec.push(op.model.find(transformQuery(op.on, docs), op.options).
+        toExec.push(op.model.find(transformQuery(op.filter, docs), op.options).
           then(function(res) {
-            debug('ignore', op.as);
-            docs.$ignorePath(op.as, true);
-            _.set(docs, op.as, res);
+            docs.$ignorePath(op.path, true);
+            _.set(docs, op.path, res);
           }));
       }
     });

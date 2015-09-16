@@ -56,7 +56,7 @@ describe('lookUp()', function() {
       ]);
 
       let populated = yield Band.findOne({ _id: gnr._id }).
-        lookUp(Person, 'members', { band: '$_id' });
+        lookUp('members', Person, { band: '$_id' });
 
       assert.equal(populated.members.length, 2);
       assert.equal(populated.members[0].name, 'Axl Rose');
@@ -71,7 +71,7 @@ describe('lookUp()', function() {
   it('properly ignores changes to populated docs', function(done) {
     co(function*() {
       let populated = yield Band.findOne({ name: `Guns N' Roses` }).
-        lookUp(Person, 'members', { band: '$_id' });
+        lookUp('members', Person, { band: '$_id' });
 
       assert.equal(populated.members.length, 2);
       assert.equal(populated.members[1].name, 'Slash');
@@ -96,7 +96,7 @@ describe('lookUp()', function() {
       let setOp = { $set: { founded: '1985' } };
       let gnr = yield Band.
         findOneAndUpdate({ name: `Guns N' Roses` }, setOp).
-        lookUp(Person, 'members', { band: '$_id' });
+        lookUp('members', Person, { band: '$_id' });
 
       assert.equal(gnr.members.length, 2);
       assert.equal(gnr.members[0].name, 'Axl Rose');
@@ -114,11 +114,55 @@ describe('lookUp()', function() {
 
       assert.ok(!gnr.members);
 
-      yield gnr.$lookUp(Person, 'members', { band: '$_id' });
+      yield gnr.$lookUp('members', Person, { band: '$_id' });
 
       assert.equal(gnr.members.length, 2);
       assert.equal(gnr.members[0].name, 'Axl Rose');
       assert.equal(gnr.members[1].name, 'Slash');
+
+      done();
+    }).catch(function(error) {
+      done(error);
+    });
+  });
+
+  it('in schema', function(done) {
+    co(function*() {
+      let db = yield monogram('mongodb://localhost:27017');
+      let Person = db.model('people');
+      let schema = new monogram.Schema({
+        members: {
+          $type: Array,
+          $lookUp: { model: Person, filter: { band: '$_id' } }
+        }
+      });
+
+      lookup(schema);
+
+      let Band = db.model({ schema: schema, collection: 'band' });
+
+      let gnr = new Band({ _id: 2, name: `Guns N' Roses` });
+      yield gnr.$save();
+
+      yield Person.create([
+        {
+          name: 'Axl Rose',
+          role: 'Lead Singer',
+          band: gnr._id
+        },
+        {
+          name: 'Slash',
+          role: 'Guitarist',
+          band: gnr._id
+        }
+      ]);
+
+      let populated = yield Band.findOne({ _id: gnr._id }).
+        lookUp('members');
+
+      assert.equal(populated.members.length, 2);
+      assert.equal(populated.members[0].name, 'Axl Rose');
+      assert.equal(populated.members[1].name, 'Slash');
 
       done();
     }).catch(function(error) {
