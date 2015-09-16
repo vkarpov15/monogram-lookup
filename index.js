@@ -116,7 +116,7 @@ function visitArray(arr, fn, path) {
   arr.forEach(function(v, index) {
     if (Array.isArray(v)) {
       visitArray(v, fn, join(path, index.toString()));
-    } else if (typeof value === 'object') {
+    } else if (typeof v === 'object') {
       visitObject(v, fn, join(path, index.toString()));
     } else {
       fn(value, index.toString(), arr);

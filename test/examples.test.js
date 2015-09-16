@@ -108,6 +108,24 @@ describe('lookUp()', function() {
     });
   });
 
+  it('works with find', function(done) {
+    co(function*() {
+      let setOp = { $set: { founded: '1985' } };
+      let bands = yield Band.
+        find({ name: `Guns N' Roses` }).
+        lookUp('members', Person, { band: '$_id' });
+
+      assert.equal(bands.length, 1);
+      assert.equal(bands[0].members.length, 2);
+      assert.equal(bands[0].members[0].name, 'Axl Rose');
+      assert.equal(bands[0].members[1].name, 'Slash');
+
+      done();
+    }).catch(function(error) {
+      done(error);
+    });
+  });
+
   it('$lookUp on a document', function(done) {
     co(function*() {
       let gnr = yield Band.findOne({ name: `Guns N' Roses` });
@@ -168,6 +186,36 @@ describe('lookUp()', function() {
       assert.equal(populated.members.length, 2);
       assert.equal(populated.members[0].name, 'Axl Rose');
       assert.equal(populated.members[1].name, 'Slash');
+
+      done();
+    }).catch(function(error) {
+      done(error);
+    });
+  });
+
+  it('complex queries', function(done) {
+    co(function*() {
+      yield Band.create([{
+        name: 'Mötley Crüe',
+        members: ['Nikki Sixx', 'Tommy Lee']
+      }]);
+
+      yield Person.create([
+        { _id: 'Nikki Sixx', role: 'Bassist' },
+        { _id: 'Tommy Lee', role: 'Drummer' },
+        { _id: 'Vince Neil', band: 'Mötley Crüe', role: 'Lead Singer' }
+      ]);
+
+      let crue = yield Band.
+        findOne({ name: 'Mötley Crüe' }).
+        lookUp('members', Person,
+          { $or: [{ _id: { $in: '$members' } }, { band: '$name' }] },
+          { sort: { _id: 1 } });
+
+      assert.equal(crue.members.length, 3);
+      assert.equal(crue.members[0]._id, 'Nikki Sixx');
+      assert.equal(crue.members[1]._id, 'Tommy Lee');
+      assert.equal(crue.members[2]._id, 'Vince Neil');
 
       done();
     }).catch(function(error) {
