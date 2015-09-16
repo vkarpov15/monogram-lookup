@@ -132,11 +132,15 @@ describe('lookUp()', function() {
 
       assert.ok(!gnr.members);
 
-      yield gnr.$lookUp('members', Person, { band: '$_id' });
+      let leadLookup = { band: '$_id', role: 'Lead Singer' };
+      yield gnr.$lookUp('members', Person, { band: '$_id' }).
+        $lookUp('lead', Person, leadLookup, { justOne: true });
 
       assert.equal(gnr.members.length, 2);
       assert.equal(gnr.members[0].name, 'Axl Rose');
       assert.equal(gnr.members[1].name, 'Slash');
+
+      assert.equal(gnr.lead.name, 'Axl Rose');
 
       done();
     }).catch(function(error) {
@@ -193,33 +197,75 @@ describe('lookUp()', function() {
     });
   });
 
-  it('complex queries', function(done) {
-    co(function*() {
-      yield Band.create([{
-        name: 'Mötley Crüe',
-        members: ['Nikki Sixx', 'Tommy Lee']
-      }]);
+  describe('complex queries', function() {
+    beforeEach(function(done) {
+      co(function*() {
+        yield Band.deleteMany({});
+        yield Person.deleteMany({});
+        done();
+      }).catch(function(error) {
+        done(error);
+      });
+    });
 
-      yield Person.create([
-        { _id: 'Nikki Sixx', role: 'Bassist' },
-        { _id: 'Tommy Lee', role: 'Drummer' },
-        { _id: 'Vince Neil', band: 'Mötley Crüe', role: 'Lead Singer' }
-      ]);
+    it('$or to aggregate inconsistent schemas', function(done) {
+      co(function*() {
+        yield Band.create([{
+          name: 'Mötley Crüe',
+          members: ['Nikki Sixx', 'Tommy Lee']
+        }]);
 
-      let crue = yield Band.
-        findOne({ name: 'Mötley Crüe' }).
-        lookUp('members', Person,
-          { $or: [{ _id: { $in: '$members' } }, { band: '$name' }] },
-          { sort: { _id: 1 } });
+        yield Person.create([
+          { _id: 'Nikki Sixx', role: 'Bassist' },
+          { _id: 'Tommy Lee', role: 'Drummer' },
+          { _id: 'Vince Neil', band: 'Mötley Crüe', role: 'Lead Singer' }
+        ]);
 
-      assert.equal(crue.members.length, 3);
-      assert.equal(crue.members[0]._id, 'Nikki Sixx');
-      assert.equal(crue.members[1]._id, 'Tommy Lee');
-      assert.equal(crue.members[2]._id, 'Vince Neil');
+        let crue = yield Band.
+          findOne({ name: 'Mötley Crüe' }).
+          lookUp('members', Person,
+            { $or: [{ _id: { $in: '$members' } }, { band: '$name' }] },
+            { sort: { _id: 1 } });
 
-      done();
-    }).catch(function(error) {
-      done(error);
+        assert.equal(crue.members.length, 3);
+        assert.equal(crue.members[0]._id, 'Nikki Sixx');
+        assert.equal(crue.members[1]._id, 'Tommy Lee');
+        assert.equal(crue.members[2]._id, 'Vince Neil');
+
+        done();
+      }).catch(function(error) {
+        done(error);
+      });
+    });
+
+    it('$in for multiple field names', function(done) {
+      co(function*() {
+        yield Band.create([{
+          name: 'Mötley Crüe',
+          utf8Name: 'Motley Crue'
+        }]);
+
+        yield Person.create([
+          { _id: 'Nikki Sixx', band: 'Mötley Crüe' },
+          { _id: 'Tommy Lee', band: 'Motley Crue' }, // Woops, no umlauts
+          { _id: 'Vince Neil', band: 'Mötley Crüe', role: 'Lead Singer' }
+        ]);
+
+        let crue = yield Band.
+          findOne({ name: 'Mötley Crüe' }).
+          lookUp('members', Person,
+            { band: { $in: ['$name', '$utf8Name'] } },
+            { sort: { _id: 1 } });
+
+        assert.equal(crue.members.length, 3);
+        assert.equal(crue.members[0]._id, 'Nikki Sixx');
+        assert.equal(crue.members[1]._id, 'Tommy Lee');
+        assert.equal(crue.members[2]._id, 'Vince Neil');
+
+        done();
+      }).catch(function(error) {
+        done(error);
+      });
     });
   });
 });

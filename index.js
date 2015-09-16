@@ -21,7 +21,7 @@ module.exports = function(schema) {
     return this;
   });
 
-  schema.method('document', '$lookUp', function*(path, model, filter, options) {
+  schema.method('document', '$lookUp', function(path, model, filter, options) {
     let chain = new Chain(this, storageKey, getPromise);
 
     let op = { path: path, model: model, filter: filter, options: options };
@@ -44,10 +44,14 @@ module.exports = function(schema) {
 
     var toExec = [];
     this[storageKey].forEach(function(op) {
+      let queryOptions = _.omit(op.options, 'justOne');
       if (Array.isArray(docs)) {
         docs.forEach(function(doc) {
           debug('lookup for doc', doc);
-          toExec.push(op.model.find(transformQuery(op.filter, doc), op.options).
+          let promise = op.options && op.options.justOne ?
+            op.model.findOne(transformQuery(op.filter, doc), queryOptions) :
+            op.model.find(transformQuery(op.filter, doc), queryOptions);
+          toExec.push(promise.
             then(function(res) {
               doc.$ignorePath(op.path, true);
               _.set(doc, op.path, res);
@@ -55,7 +59,10 @@ module.exports = function(schema) {
         });
       } else {
         debug('lookup for doc', docs);
-        toExec.push(op.model.find(transformQuery(op.filter, docs), op.options).
+        let promise = op.options && op.options.justOne ?
+          op.model.findOne(transformQuery(op.filter, docs), queryOptions) :
+          op.model.find(transformQuery(op.filter, docs), queryOptions);
+        toExec.push(promise.
           then(function(res) {
             docs.$ignorePath(op.path, true);
             _.set(docs, op.path, res);
@@ -89,8 +96,14 @@ module.exports = function(schema) {
 };
 
 function Chain(doc, storageKey, exec) {
-  this.$lookUp = (model, as, on, options) => {
-    this[storageKey].push({ model: model, as: as, on: on, options: options });
+  this.$lookUp = (path, model, filter, options) => {
+    this[storageKey].push({
+      path: path,
+      model: model,
+      filter: filter,
+      options: options
+    });
+    return this;
   };
   this.then = function(resolve, reject) {
     return Promise.all(exec.call(this, doc)).then(resolve, reject);
@@ -119,7 +132,7 @@ function visitArray(arr, fn, path) {
     } else if (typeof v === 'object') {
       visitObject(v, fn, join(path, index.toString()));
     } else {
-      fn(value, index.toString(), arr);
+      fn(v, index.toString(), arr);
     }
   });
 }
