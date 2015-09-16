@@ -156,6 +156,12 @@ describe('lookUp()', function() {
         }
       ]);
 
+      yield gnr.$lookUp('members');
+
+      assert.equal(gnr.members.length, 2);
+      assert.equal(gnr.members[0].name, 'Axl Rose');
+      assert.equal(gnr.members[1].name, 'Slash');
+
       let populated = yield Band.findOne({ _id: gnr._id }).
         lookUp('members');
 

@@ -22,13 +22,17 @@ module.exports = function(schema) {
   });
 
   schema.method('document', '$lookUp', function*(path, model, filter, options) {
-    var chain = new Chain(this, storageKey, getPromise);
-    chain[storageKey] = [{
-      path: path,
-      model: model,
-      filter: filter,
-      options: options
-    }];
+    let chain = new Chain(this, storageKey, getPromise);
+
+    let op = { path: path, model: model, filter: filter, options: options };
+    if (this.$schema() && this.$schema()._paths[path]) {
+      _.defaults(op, this.$schema()._paths[path].$lookUp);
+    }
+    if (op.ref) {
+      op.model = this.$model().db().model(op.ref);
+    }
+
+    chain[storageKey] = [op];
     return chain;
   });
 
