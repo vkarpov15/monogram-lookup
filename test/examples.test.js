@@ -42,13 +42,15 @@ describe('lookUp()', function() {
       let gnr = new Band({ _id: 1, name: `Guns N' Roses` });
       yield gnr.$save();
 
-      yield Person.create([
+      yield Person.insertMany([
         {
+          _id: 1,
           name: 'Axl Rose',
           role: 'Lead Singer',
           band: gnr._id
         },
         {
+          _id: 2,
           name: 'Slash',
           role: 'Guitarist',
           band: gnr._id
@@ -165,13 +167,15 @@ describe('lookUp()', function() {
       let gnr = new Band({ _id: 2, name: `Guns N' Roses` });
       yield gnr.$save();
 
-      yield Person.create([
+      yield Person.insertMany([
         {
+          _id: 1,
           name: 'Axl Rose',
           role: 'Lead Singer',
           band: gnr._id
         },
         {
+          _id: 2,
           name: 'Slash',
           role: 'Guitarist',
           band: gnr._id
@@ -210,12 +214,12 @@ describe('lookUp()', function() {
 
     it('$or to aggregate inconsistent schemas', function(done) {
       co(function*() {
-        yield Band.create([{
+        yield Band.insertMany([{
           name: 'Mötley Crüe',
           members: ['Nikki Sixx', 'Tommy Lee']
         }]);
 
-        yield Person.create([
+        yield Person.insertMany([
           { _id: 'Nikki Sixx', role: 'Bassist' },
           { _id: 'Tommy Lee', role: 'Drummer' },
           { _id: 'Vince Neil', band: 'Mötley Crüe', role: 'Lead Singer' }
@@ -240,12 +244,12 @@ describe('lookUp()', function() {
 
     it('$in for multiple field names', function(done) {
       co(function*() {
-        yield Band.create([{
+        yield Band.insertMany([{
           name: 'Mötley Crüe',
           utf8Name: 'Motley Crue'
         }]);
 
-        yield Person.create([
+        yield Person.insertMany([
           { _id: 'Nikki Sixx', band: 'Mötley Crüe' },
           { _id: 'Tommy Lee', band: 'Motley Crue' }, // Woops, no umlauts
           { _id: 'Vince Neil', band: 'Mötley Crüe', role: 'Lead Singer' }

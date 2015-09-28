@@ -53,18 +53,29 @@ module.exports = function(schema) {
             op.model.find(transformQuery(op.filter, doc), queryOptions);
           toExec.push(promise.
             then(function(res) {
-              doc.$ignorePath(op.path, true);
+              doc.$transform(function(path, change, value) {
+                if (path.startsWith(op.path + '.') || path === op.path) {
+                  return null;
+                }
+                return value;
+              });
               _.set(doc, op.path, res);
             }));
         });
       } else {
-        debug('lookup for doc', docs);
+        let doc = docs;
+        debug('lookup for doc', doc);
         let promise = op.options && op.options.justOne ?
-          op.model.findOne(transformQuery(op.filter, docs), queryOptions) :
-          op.model.find(transformQuery(op.filter, docs), queryOptions);
+          op.model.findOne(transformQuery(op.filter, doc), queryOptions) :
+          op.model.find(transformQuery(op.filter, doc), queryOptions);
         toExec.push(promise.
           then(function(res) {
-            docs.$ignorePath(op.path, true);
+            doc.$transform(function(path, change, value) {
+              if (path.startsWith(op.path + '.') || path === op.path) {
+                return null;
+              }
+              return value;
+            });
             _.set(docs, op.path, res);
           }));
       }
